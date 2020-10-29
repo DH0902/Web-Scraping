@@ -1,0 +1,45 @@
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup as Soup
+
+result = requests.get('https://store.steampowered.com/tags/en/Action/').text
+
+# html parsing
+page_soup = Soup(result, 'html.parser')
+
+# grabbing all containers with class name = NewReleasesRows
+containers = page_soup.find('div', id = 'NewReleasesRows')
+
+filename = 'New&Trending.csv'
+
+with open (filename , 'wb') as file:
+    file.write(page_soup.prettify('utf-8'))
+    
+games = containers.find_all('a')
+
+# extracting the name of each games
+game_name = [game.find('div', class_ = 'tab_item_name').text for game in games]
+
+# extracting the discounted price of each games
+game_discount_price = [game.find('div', class_ = 'discount_final_price').text for game in games]
+
+# extracting the original price of each game
+game_ori_price = []
+for game in games:
+    price = game.find('div' , class_ = 'discount_original_price')
+    if price is not None:                                           
+        result = price.text
+    else:
+        result = 'NULL'
+    game_ori_price.append(result)
+    
+# create a data frame and populate it
+steam_game_info = pd.DataFrame()
+
+steam_game_info['Steam Game Name'] = game_name
+steam_game_info['Original Price'] = game_ori_price
+steam_game_info['Discounted Price'] = game_discount_price
+
+# export the data to csv and excel files
+steam_game_info.to_csv('Steam Game New & Trending.csv', index = False, header = True)
+steam_game_info.to_excel('Steam Game New & Trending.xlsx', index = False, header = True)
